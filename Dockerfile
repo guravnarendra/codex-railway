@@ -1,69 +1,52 @@
 FROM ubuntu:22.04
 
-# ── Environment ─────────────────────────────────────────────────────────────
 ENV DEBIAN_FRONTEND=noninteractive
-ENV DISPLAY=:1
-ENV VNC_RESOLUTION=1280x720
-ENV VNC_COL_DEPTH=24
-ENV HOME=/home/vuser
-ENV USER=vuser
+ENV TZ=UTC
 
-# ── System packages ──────────────────────────────────────────────────────────
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    # Desktop
-    xfce4 xfce4-goodies xfce4-terminal thunar mousepad \
-    # VNC & display
-    tigervnc-standalone-server tigervnc-common xvfb dbus-x11 \
-    # noVNC
-    novnc websockify python3 python3-pip \
-    # Web terminal
-    ttyd \
-    # Web server
-    nginx \
-    # PHP for Adminer (PostgreSQL admin UI)
-    php php-pgsql php-mbstring \
-    # Utilities
-    sudo curl wget git nano vim htop tree unzip zip jq \
-    net-tools iputils-ping \
-    postgresql-client \
+# --- Core system update ---
+RUN apt-get update && apt-get upgrade -y
+
+# --- Install XFCE4 desktop + VNC + utilities ---
+RUN apt-get install -y \
+    xfce4 \
+    xfce4-goodies \
+    xfce4-terminal \
+    tigervnc-standalone-server \
+    tigervnc-common \
+    dbus-x11 \
+    x11-xserver-utils \
+    wget curl git \
+    python3 python3-pip \
+    neofetch \
+    nano vim \
+    net-tools \
     supervisor \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# ── Node.js LTS ───────────────────────────────────────────────────────────────
-RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
-    && apt-get install -y nodejs \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# --- Install noVNC (browser VNC client) ---
+RUN wget -qO /tmp/novnc.tar.gz \
+      https://github.com/novnc/noVNC/archive/refs/tags/v1.4.0.tar.gz && \
+    tar -xzf /tmp/novnc.tar.gz -C /opt && \
+    mv /opt/noVNC-1.4.0 /opt/noVNC && \
+    rm /tmp/novnc.tar.gz
 
-# ── FileBrowser (web file manager) ───────────────────────────────────────────
-RUN curl -fsSL https://github.com/filebrowser/filebrowser/releases/download/v2.27.0/linux-amd64-filebrowser.tar.gz \
-    | tar -xz -C /usr/local/bin filebrowser \
-    && chmod +x /usr/local/bin/filebrowser
+# --- Install websockify (required by noVNC proxy) ---
+RUN pip3 install websockify
 
-# ── Adminer (PostgreSQL web admin) ───────────────────────────────────────────
-RUN mkdir -p /var/www/adminer \
-    && curl -fsSL https://github.com/vrana/adminer/releases/download/v4.8.1/adminer-4.8.1.php \
-    -o /var/www/adminer/index.php
+# --- Make novnc_proxy executable ---
+RUN chmod +x /opt/noVNC/utils/novnc_proxy
 
-# ── Create non-root user ─────────────────────────────────────────────────────
-RUN useradd -m -s /bin/bash vuser \
-    && echo "vuser:vuser" | chpasswd \
-    && usermod -aG sudo vuser \
-    && echo "vuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+# --- Create symlink so / redirects to noVNC UI ---
+RUN ln -s /opt/noVNC/vnc.html /opt/noVNC/index.html
 
-# ── noVNC symlink ─────────────────────────────────────────────────────────────
-RUN ln -sf /usr/share/novnc/vnc.html /usr/share/novnc/index.html
-
-# ── Persistent data directories ──────────────────────────────────────────────
-RUN mkdir -p /data /var/www/html \
-    && chown vuser:vuser /data
-
-# ── Copy config files ─────────────────────────────────────────────────────────
-COPY nginx.conf /etc/nginx/nginx.conf
-COPY index.html /var/www/html/index.html
+# --- Copy startup script ---
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
-EXPOSE 8080
+# --- Default env vars (override via Railway variables) ---
+ENV VNC_PASSWORD=changeme
+ENV PORT=8080
+
+EXPOSE $PORT
+
 CMD ["/start.sh"]

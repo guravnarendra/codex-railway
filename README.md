@@ -1,55 +1,57 @@
-# Browser VM — Railway Deployment
+![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04-E95420?logo=ubuntu)
+![Docker](https://img.shields.io/badge/Docker-Supported-blue?logo=docker)
+![Desktop](https://img.shields.io/badge/GUI-XFCE4%20Desktop-blue?logo=linux)
 
-A fully browser-accessible **Linux VM** running on Railway.
+# Ubuntu Desktop on Railway
 
-## Features
+A full **XFCE4 graphical desktop** running on Railway, accessible directly from your browser via **noVNC** — no client software required.
 
-| Feature | Tool |
-|---|---|
-| Linux Desktop in Browser | noVNC + TigerVNC + XFCE4 |
-| Web Terminal | ttyd |
-| File Manager | Thunar (in desktop) |
-| Persistent Files | Railway Volume at `/data` |
-| Database | PostgreSQL (Railway plugin) |
-| OS | Ubuntu 22.04 LTS |
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.com/new)
 
-## URLs (after deploy)
+## How It Works
 
-| Page | Path |
-|---|---|
-| Dashboard | `/` |
-| Linux Desktop | `/desktop/` |
-| Web Terminal | `/terminal/` |
+```
+Browser → noVNC (WebSocket on $PORT) → TigerVNC Server → XFCE4 Desktop
+```
 
-## Environment Variables (set in Railway)
+- **noVNC** — serves the VNC viewer as a web app in your browser
+- **TigerVNC** — the VNC server running inside the container
+- **XFCE4** — lightweight, fast graphical desktop environment
 
-| Variable | Default | Description |
+## Access
+
+After deployment, open your Railway-provided URL in any browser. You'll get a full Ubuntu desktop with:
+- File manager
+- XFCE4 Terminal
+- Text editor
+- And anything else you `apt install`
+
+## Environment Variables
+
+| Variable | Description | Default |
 |---|---|---|
-| `VNC_PASSWORD` | `changeme123` | VNC/desktop access password |
-| `VNC_RESOLUTION` | `1280x720` | Desktop screen resolution |
-| `PORT` | `8080` | Auto-set by Railway |
-| `DATABASE_URL` | — | Auto-injected by Railway PostgreSQL plugin |
+| `PORT` | Port noVNC listens on (set by Railway) | `8080` |
+| `VNC_PASSWORD` | Password to protect the desktop | `changeme` |
 
-## Deploy to Railway
+> ⚠️ **Always set `VNC_PASSWORD`** to something strong before deploying.
 
-1. Push this repo to GitHub
-2. Go to [railway.app](https://railway.app) → New Project → Deploy from GitHub
-3. Add **PostgreSQL** plugin (+ New → Database → PostgreSQL)
-4. Add a **Volume** → mount path `/data`
-5. Set `VNC_PASSWORD` in environment variables
-6. Deploy!
+## Pre-installed Software
 
-## Database Usage
+- XFCE4 Desktop + Goodies
+- TigerVNC Server
+- noVNC (browser VNC client)
+- git, curl, wget, python3, pip3
+- nano, vim, neofetch
 
-Inside the web terminal:
+## Install More Software
+
+Once connected to the desktop, open the terminal and run:
 ```bash
-psql $DATABASE_URL
+apt-get install -y <package>
 ```
 
-## Persistent Files
+## Notes
 
-All files under `/data` persist across restarts:
-```bash
-ls /data
-cp myfile.txt /data/
-```
+- Resolution defaults to **1280×800**. You can change it in `start.sh`.
+- Data does not persist between restarts unless you attach a Railway Volume.
+- The container runs as `root`.
