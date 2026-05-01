@@ -20,23 +20,19 @@ RUN apt-get install -y \
     neofetch \
     nano vim \
     net-tools \
-    supervisor \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# --- Install noVNC (browser VNC client) ---
+# --- Install noVNC v1.3.0 (stable) ---
 RUN wget -qO /tmp/novnc.tar.gz \
-      https://github.com/novnc/noVNC/archive/refs/tags/v1.4.0.tar.gz && \
+      https://github.com/novnc/noVNC/archive/refs/tags/v1.3.0.tar.gz && \
     tar -xzf /tmp/novnc.tar.gz -C /opt && \
-    mv /opt/noVNC-1.4.0 /opt/noVNC && \
+    mv /opt/noVNC-1.3.0 /opt/noVNC && \
     rm /tmp/novnc.tar.gz
 
-# --- Install websockify (required by noVNC proxy) ---
+# --- Install websockify (serves noVNC + proxies VNC) ---
 RUN pip3 install websockify
 
-# --- Make novnc_proxy executable ---
-RUN chmod +x /opt/noVNC/utils/novnc_proxy
-
-# --- Create symlink so / redirects to noVNC UI ---
+# --- Redirect root URL to noVNC viewer ---
 RUN ln -s /opt/noVNC/vnc.html /opt/noVNC/index.html
 
 # --- Copy startup script ---

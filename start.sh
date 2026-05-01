@@ -38,11 +38,8 @@ vncserver :${DISPLAY_NUM} \
 
 sleep 3
 
-# --- Start noVNC websocket proxy ---
+# --- Start noVNC via websockify (stable, direct approach) ---
 echo "[*] Starting noVNC on port ${PORT}..."
-/opt/noVNC/utils/novnc_proxy \
-  --vnc localhost:${VNC_PORT} \
-  --listen ${PORT} \
-  --web /opt/noVNC &
+websockify --web /opt/noVNC ${PORT} localhost:${VNC_PORT} &
 
 wait
